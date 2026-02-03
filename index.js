@@ -66,3 +66,190 @@ function setActiveCategory(activeId) {
   }
 }
 
+async function loadCategories() {
+  try {
+    setLoading(true);
+    const payload = await getJSON(API.categories);
+    const categories = pickCategories(payload);
+
+    elements.categoryContainer.innerHTML = "";
+
+    const allBtn = document.createElement("button");
+    allBtn.id = "cat-all";
+    allBtn.className = "cat-btn w-full text-left px-3 py-2 rounded-md bg-transparent text-green-800 font-semibold hover:bg-green-700 hover:text-white transition";
+    allBtn.textContent = "All Trees";
+    allBtn.onclick = () => {
+      setActiveCategory("cat-all");
+      loadAllPlants();
+    };
+    elements.categoryContainer.appendChild(allBtn);
+
+    categories.forEach((cat) => {
+      const id = cat.category_id || cat.id;
+      const btn = document.createElement("button");
+      btn.id = `cat-${id}`;
+      btn.className = "cat-btn w-full text-left px-3 py-2 rounded-md bg-transparent text-green-800 hover:bg-green-700 hover:text-white transition";
+      btn.textContent = cat.category_name;
+      btn.onclick = () => {
+        setActiveCategory(`cat-${id}`);
+        loadPlantsByCategory(id);
+      };
+      elements.categoryContainer.appendChild(btn);
+    });
+
+    setActiveCategory("cat-all");
+    loadAllPlants();
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function loadAllPlants() {
+  try {
+    setLoading(true);
+    const payload = await getJSON(API.allPlants);
+    renderPlants(pickPlants(payload));
+  } catch (err) {
+    elements.plantContainer.innerHTML = `<p class="text-red-500">Error loading plants</p>`;
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function loadPlantsByCategory(categoryId) {
+  try {
+    setLoading(true);
+    const payload = await getJSON(API.byCategory(categoryId));
+    renderPlants(pickPlants(payload));
+  } catch (err) {
+    elements.plantContainer.innerHTML = `<p class="text-red-500">Error loading category</p>`;
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderPlants(plants) {
+  elements.plantContainer.innerHTML = "";
+  if (!plants || plants.length === 0) {
+    elements.emptyState.classList.remove("hidden");
+    return;
+  }
+  elements.emptyState.classList.add("hidden");
+
+  plants.forEach((p) => {
+    const id = getPlantId(p);
+    const name = p.plant_name || p.name;
+    const price = priceToNumber(p.price);
+    const card = document.createElement("div");
+    card.className = "bg-white rounded-2xl border border-green-50 shadow-sm p-3 hover:shadow-md transition-shadow";
+
+    card.innerHTML = `
+      <div class="bg-gray-50 border border-green-50 rounded-xl overflow-hidden h-44 mb-3">
+        <img src="${p.image}" alt="${name}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+      </div>
+      <div class="space-y-2">
+        <h3 class="font-bold text-[#166534] cursor-pointer hover:underline" onclick="showPlantDetails('${id}', '${encodeURIComponent(JSON.stringify(p))}')">
+          ${name}
+        </h3>
+        <p class="text-[11px] text-gray-500 line-clamp-2">${p.short_description || p.description || ""}</p>
+        <div class="flex items-center justify-between">
+          <span class="badge bg-green-100 text-[#166534] border-0 text-[10px] font-semibold">${p.category || "General"}</span>
+          <span class="font-bold text-gray-800">৳${price}</span>
+        </div>
+        <button onclick="addToCart('${name}', ${price})" class="btn btn-sm w-full rounded-full mt-2 transition-all duration-300 bg-[#15803D] text-white border hover:bg-white hover:text-[#15803D]">
+          Add to Cart
+        </button>
+      </div>
+    `;
+    elements.plantContainer.appendChild(card);
+  });
+}
+
+async function showPlantDetails(id, encodedData) {
+  const fallback = JSON.parse(decodeURIComponent(encodedData));
+  try {
+    setLoading(true);
+    const payload = await getJSON(API.details(id));
+    const p = pickPlantDetail(payload) || fallback;
+    elements.modalBody.innerHTML = `
+      <div class="space-y-4">
+        <h2 class="text-2xl font-bold text-gray-900">${p.plant_name || p.name}</h2>
+        
+        <div class="w-full overflow-hidden rounded-xl">
+          <img src="${p.image}" class="w-full h-auto max-h-64 object-cover rounded-xl shadow-sm">
+        </div>
+
+        <div class="space-y-2 text-gray-700 text-sm">
+          <p><strong class="text-black">Category:</strong> ${p.category || "General"}</p>
+          <p><strong class="text-black">Price:</strong> ৳${priceToNumber(p.price)}</p>
+          <p class="leading-relaxed">
+            <strong class="text-black">Description:</strong> ${p.description || p.short_description || "No description provided."}
+          </p>
+        </div>
+      </div>
+    `;
+    elements.plantModal.showModal();
+  } catch (err) {
+    console.error("Modal Error:", err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function addToCart(name, price) {
+  cart.push({ name, price });
+  updateCartUI();
+
+  let currentTotal = 0;
+  cart.forEach(item => currentTotal += item.price);
+
+  Swal.fire({
+    title: `<span style="font-family: 'Poppins', sans-serif; color: #15803D;">${name}</span>`,
+    html: `
+      <div style="text-align: center; font-family: 'Segoe UI', sans-serif;">
+        <p style="font-size: 1.2rem; margin: 10px 0;">৳${price} × 1 = ${price}৳</p>
+        <p style="font-weight: bold; color: #333;">Total: ৳${currentTotal}</p>
+        <hr style="border: 0.5px solid #eee; margin: 15px 0;">
+        <p style="color: #15803D; font-weight: 600;">added ${name}</p>
+      </div>
+    `,
+    icon: 'success',
+    confirmButtonText: 'OKAY',
+    confirmButtonColor: '#15803D',
+    background: '#fff',
+    customClass: { popup: 'rounded-3xl shadow-xl' }
+  });
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  updateCartUI();
+}
+
+function updateCartUI() {
+  elements.cartList.innerHTML = "";
+  let total = 0;
+  if (cart.length === 0) {
+    elements.cartList.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Cart is empty</p>`;
+    elements.totalPriceEl.textContent = "0";
+    return;
+  }
+  cart.forEach((item, index) => {
+    total += item.price;
+    const row = document.createElement("div");
+    row.className = "flex items-center justify-between bg-green-50 rounded-lg p-2 mb-2 animate-pulse-once";
+    row.innerHTML = `
+      <div class="min-w-0">
+        <p class="font-bold text-[12px] truncate">${item.name}</p>
+        <p class="text-[10px] text-gray-500">৳${item.price} × 1</p>
+      </div>
+      <button onclick="removeFromCart(${index})" class="text-red-400 hover:text-red-600 px-2">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    `;
+    elements.cartList.appendChild(row);
+  });
+  elements.totalPriceEl.textContent = total;
+}
