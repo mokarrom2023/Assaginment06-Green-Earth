@@ -253,3 +253,37 @@ function updateCartUI() {
   });
   elements.totalPriceEl.textContent = total;
 }
+if (elements.donateForm) {
+  elements.donateForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = e.target.querySelector('input[type="text"]').value;
+    const email = e.target.querySelector('input[type="email"]').value;
+    const trees = e.target.querySelector('select').value;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Swal.fire({ icon: 'error', title: 'Oops...', text: 'Invalid Email!', confirmButtonColor: '#d33' });
+      return;
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: `<span style="color: #15803D; font-family: 'Poppins', sans-serif;">Donation Success!</span>`,
+      html: `
+        <div style="text-align: center; font-family: 'Segoe UI', sans-serif;">
+          <p style="font-size: 1.1rem; color: #555;">Thank you, <b>${name}</b>!</p>
+          <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; margin: 15px 0; border: 1px dashed #15803D;">
+             <p style="font-size: 1.2rem; font-weight: bold; color: #15803D; margin: 0;">🌳 ${trees} Trees Donated 🌳</p>
+          </div>
+          <p style="font-size: 0.9rem; color: #666;">( ${name} donated ${trees} trees successfully! )</p>
+        </div>
+      `,
+      confirmButtonColor: '#15803D',
+      confirmButtonText: 'Great!',
+      customClass: { popup: 'rounded-3xl' }
+    });
+    e.target.reset();
+  });
+}
+
+loadCategories();
