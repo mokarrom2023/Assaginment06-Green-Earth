@@ -158,7 +158,7 @@ function renderPlants(plants) {
           <span class="badge bg-green-100 text-[#166534] border-0 text-[10px] font-semibold">${p.category || "General"}</span>
           <span class="font-bold text-gray-800">৳${price}</span>
         </div>
-        <button onclick="addToCart('${name}', ${price})" class="btn btn-sm w-full rounded-full mt-2 transition-all duration-300 bg-[#15803D] text-white border hover:bg-white hover:text-[#15803D]">
+        <button onclick="addToCart('${name}', ${price})" class="btn btn-sm w-full rounded-full mt-2 transition-all duration-300 bg-[#15803D] text-white border hover:bg-green-300 hover:text-[#15803D]">
           Add to Cart
         </button>
       </div>
@@ -208,7 +208,7 @@ function addToCart(name, price) {
   Swal.fire({
     title: `<span style="font-family: 'Poppins', sans-serif; color: #15803D;">${name}</span>`,
     html: `
-      <div style="text-align: center; font-family: 'Segoe UI', sans-serif;">
+      <div style="text-align: center; font-family: 'Ag-heading', sans-serif;">
         <p style="font-size: 1.2rem; margin: 10px 0;">৳${price} × 1 = ${price}৳</p>
         <p style="font-weight: bold; color: #333;">Total: ৳${currentTotal}</p>
         <hr style="border: 0.5px solid #eee; margin: 15px 0;">
